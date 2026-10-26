@@ -6,98 +6,127 @@
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  padding: 0 24px;
-  gap: 16px;
+  padding: 0 20px;
+  gap: 12px;
   position: sticky;
   top: 0;
   z-index: 100;
 }
 
-.search-box {
-  flex: 1;
-  max-width: 480px;
+/* ── Page title (left) ── */
+.page-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  flex-shrink: 0;
+}
+
+/* ── Right cluster ── */
+.topbar-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* ── Search ── */
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0 14px;
-  height: 38px;
+  border-radius: var(--radius-sm);
+  padding: 0 10px;
+  height: 32px;
   color: var(--text-muted);
-  transition: border-color 0.2s;
-  &:focus-within { border-color: var(--primary); color: var(--text); }
+  transition: border-color var(--transition), box-shadow var(--transition);
+
+  &:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+    color: var(--text);
+  }
+
+  svg { flex-shrink: 0; opacity: 0.5; }
+
   input {
-    flex: 1;
+    width: 180px;
     background: none;
     border: none;
     outline: none;
     color: var(--text);
-    font-size: 13px;
+    font-size: 12px;
     font-family: inherit;
     &::placeholder { color: var(--text-muted); }
   }
-  kbd {
-    font-size: 10px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 1px 5px;
-    color: var(--text-muted);
-  }
 }
 
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-}
-
+/* ── Icon button ── */
 .icon-btn {
-  width: 36px; height: 36px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 9px;
+  width: 32px; height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
   display: flex; align-items: center; justify-content: center;
   color: var(--text-muted);
   cursor: pointer;
   position: relative;
-  transition: background 0.15s, color 0.15s;
-  &:hover { background: var(--border); color: var(--text); }
+  transition: background var(--transition), color var(--transition);
+
+  &:hover {
+    background: var(--surface2);
+    color: var(--text);
+  }
+
+  svg { pointer-events: none; }
 }
+
 .notif-btn .badge-count {
   position: absolute;
-  top: -4px; right: -4px;
-  background: var(--red);
+  top: -2px; right: -2px;
+  background: var(--rose);
   color: #fff;
   font-size: 9px;
   font-weight: 700;
-  width: 16px; height: 16px;
-  border-radius: 50%;
+  min-width: 14px; height: 14px;
+  border-radius: 99px;
   display: flex; align-items: center; justify-content: center;
-  border: 2px solid var(--surface);
+  border: 1.5px solid var(--surface);
+  padding: 0 3px;
 }
 
+/* ── Divider ── */
+.topbar-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 2px;
+}
+
+/* ── User chip ── */
 .user-chip {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 6px 10px;
+  gap: 7px;
+  padding: 4px 10px 4px 5px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background 0.15s;
-  &:hover { background: var(--border); }
+  transition: background var(--transition);
+
+  &:hover { background: var(--surface2); }
 }
+
 .avatar {
-  width: 30px; height: 30px;
-  background: linear-gradient(135deg, var(--primary), #7c3aed);
-  border-radius: 8px;
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--primary) 100%);
+  border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700; color: #fff;
+  font-size: 10px; font-weight: 700; color: #fff;
+  flex-shrink: 0;
 }
-.user-info { display: flex; flex-direction: column; }
-.user-name { font-size: 12px; font-weight: 600; color: var(--text); }
-.user-role { font-size: 10px; color: var(--text-muted); }
+
+.user-name { font-size: 13px; font-weight: 500; color: var(--text); }
+
+.chevron { color: var(--text-faint); flex-shrink: 0; }
