@@ -1,0 +1,368 @@
+<div class="cm-root">
+
+  <!-- ── BREADCRUMB ── -->
+  <nav class="breadcrumb">
+    <span *ngFor="let c of breadcrumb; let last = last">
+      <button class="crumb" [class.active]="last" (click)="navigateTo(c.level)">{{ c.label }}</button>
+      <span class="crumb-sep" *ngIf="!last">›</span>
+    </span>
+    <button class="reset-btn" *ngIf="viewLevel() !== 'network'" (click)="navigateTo('network')">⛶ Reset</button>
+  </nav>
+
+  <!-- ══════════════════════════════════════════════════════════
+       LEVEL 1 — NETWORK VIEW
+  ══════════════════════════════════════════════════════════ -->
+  <div class="view-wrap" *ngIf="viewLevel() === 'network'">
+
+    <!-- Network HUD -->
+    <div class="net-hud card">
+      <div class="hud-title"><span class="dot-pulse"></span> Charging Network</div>
+      <div class="hud-stats">
+        <div class="hstat"><span class="hv">{{ networkStats().sites }}</span><span class="hl">Sites</span></div>
+        <div class="hstat"><span class="hv">{{ networkStats().stations }}</span><span class="hl">Stations</span></div>
+        <div class="hstat"><span class="hv" style="color:#34d399">{{ networkStats().available }}</span><span class="hl">Available</span></div>
+        <div class="hstat"><span class="hv" style="color:#818cf8">{{ networkStats().charging }}</span><span class="hl">Charging</span></div>
+        <div class="hstat"><span class="hv" style="color:#f87171">{{ networkStats().faults }}</span><span class="hl">Faults</span></div>
+        <div class="hstat"><span class="hv" style="color:#22d3ee">{{ networkStats().totalPower }} kW</span><span class="hl">Live Power</span></div>
+        <div class="hstat"><span class="hv" style="color:#a78bfa">{{ networkStats().energyToday }} kWh</span><span class="hl">Today</span></div>
+        <div class="hstat"><span class="hv" style="color:#34d399">{{ networkStats().health }}%</span><span class="hl">Health</span></div>
+      </div>
+    </div>
+
+    <!-- Network Map -->
+    <div class="net-map card">
+      <div class="map-grid">
+        <!-- Power flow lines SVG -->
+        <svg class="flow-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="flowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#818cf8" stop-opacity="0"/>
+              <stop offset="50%" stop-color="#818cf8" stop-opacity="0.6"/>
+              <stop offset="100%" stop-color="#818cf8" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <!-- grid center to each site -->
+          <line x1="50" y1="50" x2="25" y2="30" stroke="url(#flowGrad)" stroke-width="0.4" class="flow-line"/>
+          <line x1="50" y1="50" x2="70" y2="30" stroke="url(#flowGrad)" stroke-width="0.4" class="flow-line"/>
+          <line x1="50" y1="50" x2="25" y2="70" stroke="url(#flowGrad)" stroke-width="0.4" class="flow-line"/>
+          <line x1="50" y1="50" x2="70" y2="70" stroke="url(#flowGrad)" stroke-width="0.4" class="flow-line"/>
+          <!-- grid node -->
+          <circle cx="50" cy="50" r="3" fill="#818cf8" opacity="0.3"/>
+          <circle cx="50" cy="50" r="1.5" fill="#818cf8" opacity="0.8"/>
+        </svg>
+
+        <!-- Grid label -->
+        <div class="grid-node">
+          <div class="grid-icon">⚡</div>
+          <div class="grid-label">GRID</div>
+        </div>
+
+        <!-- Site nodes -->
+        <div
+          class="site-node"
+          *ngFor="let site of sites"
+          [style.left.%]="site.x"
+          [style.top.%]="site.y"
+          [class.offline]="!site.online"
+          (click)="drillSite(site)"
+        >
+          <div class="site-ring" [class.online]="site.online"></div>
+          <div class="site-core">
+            <div class="site-icon">🏭</div>
+            <div class="site-ports">
+                <ng-container *ngFor="let st of site.stations">
+                  <span *ngFor="let p of st.ports" class="mini-dot" [style.background]="portColor(p.status)"></span>
+                </ng-container>
+              </div>
+          </div>
+          <div class="site-label">{{ site.name }}</div>
+          <div class="site-sub">{{ siteStats(site).charging }} charging · {{ siteStats(site).available }} free</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Site cards -->
+    <div class="site-cards">
+      <div class="site-card card" *ngFor="let site of sites" (click)="drillSite(site)" [class.offline]="!site.online">
+        <div class="sc-header">
+          <span class="sc-name">{{ site.name }}</span>
+          <span class="sc-loc">{{ site.location }}</span>
+          <span class="sc-badge" [class.online]="site.online">{{ site.online ? 'Online' : 'Offline' }}</span>
+        </div>
+        <div class="sc-stats">
+          <span class="sc-stat"><b style="color:#34d399">{{ siteStats(site).available }}</b> free</span>
+          <span class="sc-stat"><b style="color:#818cf8">{{ siteStats(site).charging }}</b> charging</span>
+          <span class="sc-stat"><b style="color:#f87171">{{ siteStats(site).faults }}</b> faults</span>
+          <span class="sc-stat"><b style="color:#22d3ee">{{ siteStats(site).power }} kW</b></span>
+        </div>
+        <div class="sc-port-row">
+          <span *ngFor="let st of site.stations">
+            <span *ngFor="let p of st.ports" class="port-pip" [style.background]="portColor(p.status)" [title]="p.id + ' · ' + portLabel(p.status)"></span>
+          </span>
+        </div>
+        <div class="sc-drill">Explore site →</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       LEVEL 2 — SITE VIEW
+  ══════════════════════════════════════════════════════════ -->
+  <div class="view-wrap" *ngIf="viewLevel() === 'site' && selectedSite()">
+    <div class="site-header">
+      <button class="back-btn" (click)="navigateTo('network')">← Network</button>
+      <div class="site-title">
+        <h2>{{ selectedSite()!.name }}</h2>
+        <span class="site-loc-tag">{{ selectedSite()!.location }}</span>
+        <span class="online-badge"><span class="dot"></span>{{ selectedSite()!.online ? 'Online' : 'Offline' }}</span>
+      </div>
+      <div class="site-hud-stats">
+        <div class="hstat" *ngFor="let s of [siteStats(selectedSite()!)]">
+          <span class="hv" style="color:#34d399">{{ s.available }}</span><span class="hl">Available</span>
+        </div>
+        <div class="hstat" *ngFor="let s of [siteStats(selectedSite()!)]">
+          <span class="hv" style="color:#818cf8">{{ s.charging }}</span><span class="hl">Charging</span>
+        </div>
+        <div class="hstat" *ngFor="let s of [siteStats(selectedSite()!)]">
+          <span class="hv" style="color:#22d3ee">{{ s.power }} kW</span><span class="hl">Live Power</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Depot visualization -->
+    <div class="depot-viz card">
+      <div class="depot-label">{{ selectedSite()!.name }} — Charging Depot</div>
+      <svg class="depot-flow-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="depotFlow" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#818cf8" stop-opacity="0.8"/>
+            <stop offset="100%" stop-color="#818cf8" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <line *ngFor="let st of selectedSite()!.stations" [attr.x1]="50" [attr.y1]="10" [attr.x2]="st.x" [attr.y2]="st.y" stroke="#818cf8" stroke-width="0.3" stroke-dasharray="2 2" opacity="0.4" class="depot-line"/>
+        <circle cx="50" cy="10" r="3" fill="#818cf8" opacity="0.5"/>
+        <circle cx="50" cy="10" r="1.5" fill="#818cf8"/>
+        <text x="50" y="8" text-anchor="middle" font-size="3" fill="#818cf8" opacity="0.8">GRID</text>
+      </svg>
+
+      <div class="station-nodes">
+        <div
+          class="station-node"
+          *ngFor="let st of selectedSite()!.stations"
+          [style.left.%]="st.x - 12"
+          [style.top.%]="st.y - 10"
+          [class.offline]="!st.online"
+          [class.hovered]="hoveredStation() === st"
+          (mouseenter)="hoveredStation.set(st)"
+          (mouseleave)="hoveredStation.set(null)"
+          (click)="drillStation(st)"
+        >
+          <div class="stn-id">{{ st.id }}</div>
+          <div class="stn-ports">
+            <div class="stn-port" *ngFor="let p of st.ports" [style.background]="portColor(p.status)" [class.charging-pulse]="p.status === 'charging'"></div>
+          </div>
+          <div class="stn-power" *ngIf="st.online">{{ st.totalPower }} kW</div>
+          <div class="stn-tooltip" *ngIf="hoveredStation() === st">
+            <div class="tt-title">{{ st.name }}</div>
+            <div class="tt-row"><span>Ports</span><span>{{ st.ports.length }}</span></div>
+            <div class="tt-row"><span>Charging</span><span style="color:#818cf8">{{ stationStats(st).charging }}</span></div>
+            <div class="tt-row"><span>Available</span><span style="color:#34d399">{{ stationStats(st).available }}</span></div>
+            <div class="tt-row"><span>Faults</span><span style="color:#f87171">{{ stationStats(st).faults }}</span></div>
+            <div class="tt-row"><span>Power</span><span style="color:#22d3ee">{{ st.totalPower }} kW</span></div>
+            <div class="tt-drill">Click to enter →</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Station list -->
+    <div class="station-list">
+      <div class="station-card card" *ngFor="let st of selectedSite()!.stations" (click)="drillStation(st)" [class.offline]="!st.online">
+        <div class="stc-header">
+          <span class="stc-id">{{ st.id }}</span>
+          <span class="stc-name">{{ st.name }}</span>
+          <span class="stc-badge" [class.online]="st.online">{{ st.online ? 'Online' : 'Offline' }}</span>
+        </div>
+        <div class="stc-ports">
+          <div class="stc-port" *ngFor="let p of st.ports" [class]="'stc-port-' + p.status" (click)="$event.stopPropagation(); drillStation(st); drillPort(p)">
+            <div class="stcp-indicator" [style.background]="portColor(p.status)" [class.charging-pulse]="p.status === 'charging'"></div>
+            <div class="stcp-id">{{ p.id }}</div>
+            <div class="stcp-status" [style.color]="portColor(p.status)">{{ portIcon(p.status) }} {{ portLabel(p.status) }}</div>
+            <div class="stcp-power" *ngIf="p.session">{{ p.session.currentPower }} kW</div>
+          </div>
+        </div>
+        <div class="stc-drill">Enter station →</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       LEVEL 3 — STATION VIEW
+  ══════════════════════════════════════════════════════════ -->
+  <div class="view-wrap" *ngIf="viewLevel() === 'station' && selectedStation()">
+    <div class="site-header">
+      <button class="back-btn" (click)="navigateTo('site')">← {{ selectedSite()!.name }}</button>
+      <div class="site-title">
+        <h2>{{ selectedStation()!.name }}</h2>
+        <span class="online-badge"><span class="dot"></span>{{ selectedStation()!.online ? 'Online' : 'Offline' }}</span>
+      </div>
+      <div class="site-hud-stats">
+        <div class="hstat"><span class="hv" style="color:#818cf8">{{ stationStats(selectedStation()!).charging }}</span><span class="hl">Charging</span></div>
+        <div class="hstat"><span class="hv" style="color:#34d399">{{ stationStats(selectedStation()!).available }}</span><span class="hl">Available</span></div>
+        <div class="hstat"><span class="hv" style="color:#22d3ee">{{ selectedStation()!.totalPower }} kW</span><span class="hl">Live Power</span></div>
+      </div>
+    </div>
+
+    <div class="port-grid-wrap">
+      <div class="port-grid">
+        <div
+          class="port-card card"
+          *ngFor="let p of selectedStation()!.ports"
+          [class]="'port-' + p.status"
+          [class.selected]="selectedPort()?.id === p.id"
+          (click)="drillPort(p)"
+        >
+          <div class="pc-header">
+            <span class="pc-id">{{ p.id }}</span>
+            <span class="pc-connector">{{ p.connectorType }}</span>
+          </div>
+
+          <!-- Battery icon -->
+          <div class="pc-bat-wrap">
+            <svg class="pc-bat-svg" viewBox="0 0 26 44" width="34" height="56">
+              <defs>
+                <clipPath [attr.id]="'pc-clip-' + p.id">
+                  <rect x="1" y="7" width="24" height="35" rx="4"/>
+                </clipPath>
+                <linearGradient [attr.id]="'pc-grad-' + p.id" x1="0" y1="1" x2="0" y2="0">
+                  <stop offset="0%" [attr.stop-color]="portColor(p.status)" stop-opacity="0.65"/>
+                  <stop offset="100%" [attr.stop-color]="portColor(p.status)" stop-opacity="1"/>
+                </linearGradient>
+              </defs>
+              <rect x="8" y="1" width="10" height="5" rx="2" [attr.fill]="portColor(p.status)" opacity="0.55"/>
+              <rect x="1" y="7" width="24" height="35" rx="4"
+                fill="rgba(255,255,255,0.04)" [attr.stroke]="portColor(p.status)" stroke-width="1.5"/>
+              <ng-container *ngIf="p.status !== 'charging'">
+                <rect x="1" [attr.y]="fillY(p.session?.soc ?? 0)" width="24"
+                  [attr.height]="fillHeight(p.session?.soc ?? 0)" rx="2"
+                  [attr.clip-path]="'url(#pc-clip-' + p.id + ')'"
+                  [attr.fill]="'url(#pc-grad-' + p.id + ')'"/>
+                <text x="13" y="30" text-anchor="middle" font-size="7" font-weight="700"
+                  [attr.fill]="(p.session?.soc ?? 0) > 40 ? 'rgba(0,0,0,0.75)' : portColor(p.status)">
+                  {{ p.session ? (p.session.soc | number:'1.0-0') + '%' : '—' }}
+                </text>
+              </ng-container>
+              <ng-container *ngIf="p.status === 'charging'">
+                <ng-container *ngFor="let seg of segments; let i = index">
+                  <rect [attr.x]="3" [attr.y]="segY(i)" [attr.width]="20" [attr.height]="6" rx="2"
+                    [attr.fill]="portColor(p.status)"
+                    [attr.opacity]="segOpacity(i, p.session?.soc ?? 0)"
+                    [class]="'seg seg-' + i"/>
+                </ng-container>
+                <text x="13" y="30" text-anchor="middle" font-size="10" fill="white"
+                  style="filter:drop-shadow(0 0 2px rgba(0,0,0,0.9))">⚡</text>
+              </ng-container>
+            </svg>
+          </div>
+
+          <div class="pc-status-label" [style.color]="portColor(p.status)">{{ portLabel(p.status) }}</div>
+
+          <!-- Charging session mini view -->
+          <ng-container *ngIf="p.session">
+            <div class="pc-soc-bar">
+              <div class="pc-soc-fill" [style.width.%]="p.session.soc" [style.background]="portColor(p.status)"></div>
+            </div>
+            <div class="pc-session-stats">
+              <span>{{ p.session.soc | number:'1.0-0' }}%</span>
+              <span>{{ p.session.currentPower }} kW</span>
+              <span>{{ sessionDuration(p.session) }}</span>
+            </div>
+            <!-- Energy flow animation -->
+            <div class="energy-flow">
+              <div class="ef-dot" [style.background]="portColor(p.status)"></div>
+              <div class="ef-dot" [style.background]="portColor(p.status)" style="animation-delay:.3s"></div>
+              <div class="ef-dot" [style.background]="portColor(p.status)" style="animation-delay:.6s"></div>
+            </div>
+          </ng-container>
+
+          <div class="pc-max-power">Max {{ p.maxPower }} kW</div>
+          <div class="pc-drill">View details →</div>
+        </div>
+      </div>
+
+      <!-- Port detail panel -->
+      <div class="port-detail-panel card" *ngIf="selectedPort()">
+        <div class="pdp-header">
+          <span class="pdp-title">{{ selectedStation()!.id }} / {{ selectedPort()!.id }}</span>
+          <button class="pdp-close" (click)="selectedPort.set(null)">✕</button>
+        </div>
+
+        <div class="pdp-status" [style.color]="portColor(selectedPort()!.status)">
+          <span class="pdp-status-icon">{{ portIcon(selectedPort()!.status) }}</span>
+          {{ portLabel(selectedPort()!.status) }}
+        </div>
+
+        <div class="pdp-section">Port Info</div>
+        <div class="pdp-row"><span>Connector</span><span>{{ selectedPort()!.connectorType }}</span></div>
+        <div class="pdp-row"><span>Max Power</span><span>{{ selectedPort()!.maxPower }} kW</span></div>
+
+        <ng-container *ngIf="selectedPort()!.session as sess">
+          <!-- Vehicle → Battery chain -->
+          <div class="chain">
+            <div class="chain-node">
+              <div class="cn-label">CHARGER</div>
+              <div class="cn-val">{{ sess.currentPower }} kW</div>
+              <div class="cn-sub">{{ sess.voltage }}V · {{ sess.current }}A</div>
+            </div>
+            <div class="chain-arrow">⚡</div>
+            <div class="chain-node">
+              <div class="cn-label">{{ sess.vehicleId }}</div>
+              <div class="cn-val">Charging</div>
+              <div class="cn-sub">{{ sessionDuration(sess) }}</div>
+            </div>
+            <div class="chain-arrow">↓</div>
+            <div class="chain-node">
+              <div class="cn-label">{{ sess.batteryId }}</div>
+              <div class="cn-val">{{ sess.soc | number:'1.0-0' }}%</div>
+              <div class="cn-sub">→ {{ sess.targetSoc }}% · {{ estCompletion(sess) }}</div>
+            </div>
+          </div>
+
+          <div class="pdp-section">Active Session</div>
+          <div class="pdp-row"><span>Vehicle</span><span>{{ sess.vehicleId }}</span></div>
+          <div class="pdp-row"><span>Battery</span><span>{{ sess.batteryId }}</span></div>
+          <div class="pdp-row"><span>Duration</span><span>{{ sessionDuration(sess) }}</span></div>
+          <div class="pdp-row"><span>Energy</span><span>{{ sess.energyDelivered | number:'1.1-1' }} kWh</span></div>
+          <div class="pdp-row"><span>SoC</span><span style="color:#818cf8">{{ sess.soc | number:'1.0-0' }}% → {{ sess.targetSoc }}%</span></div>
+          <div class="pdp-row"><span>Est. done</span><span>{{ estCompletion(sess) }}</span></div>
+
+          <!-- SoC bar -->
+          <div class="pdp-soc-wrap">
+            <div class="pdp-soc-bg">
+              <div class="pdp-soc-fill" [style.width.%]="sess.soc" [style.background]="portColor(selectedPort()!.status)"></div>
+              <div class="pdp-soc-target" [style.left.%]="sess.targetSoc"></div>
+            </div>
+            <div class="pdp-soc-labels">
+              <span>0%</span><span>{{ sess.soc | number:'1.0-0' }}%</span><span>100%</span>
+            </div>
+          </div>
+
+          <div class="pdp-actions">
+            <button class="pdp-btn danger">Stop Charging</button>
+            <button class="pdp-btn outline">View Vehicle</button>
+            <button class="pdp-btn outline">View Battery</button>
+            <button class="pdp-btn outline">Session History</button>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="!selectedPort()!.session">
+          <div class="pdp-actions">
+            <button class="pdp-btn primary">Start Session</button>
+            <button class="pdp-btn outline">Diagnostics</button>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+
+</div>

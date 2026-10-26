@@ -1,0 +1,193 @@
+<div class="bm-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1>Battery Management</h1>
+      <p class="sub">Monitor battery health, SoC, temperature and usage across all vehicles.</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-secondary">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export
+      </button>
+      <button class="btn-primary">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Summary KPIs -->
+  <div class="kpi-row">
+    <div class="kpi-card card" *ngFor="let h of healthStats">
+      <div class="kpi-dot" [style.background]="h.color"></div>
+      <div class="kpi-body">
+        <span class="kpi-label">{{ h.label }}</span>
+        <span class="kpi-value" [style.color]="h.color">{{ h.count }}</span>
+        <div class="kpi-bar-wrap">
+          <div class="kpi-bar" [style.width]="h.pct + '%'" [style.background]="h.color"></div>
+        </div>
+        <span class="kpi-pct">{{ h.pct }}%</span>
+      </div>
+    </div>
+    <div class="kpi-card card alert-kpi">
+      <div class="kpi-dot" style="background:#ef4444"></div>
+      <div class="kpi-body">
+        <span class="kpi-label">Active Alerts</span>
+        <span class="kpi-value" style="color:#ef4444">{{ alerts.length }}</span>
+        <span class="kpi-sub">Require attention</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs-bar">
+    <button
+      *ngFor="let t of tabs"
+      class="tab-btn"
+      [class.active]="activeTab === t.id"
+      (click)="setTab(t.id)"
+    >
+      {{ t.label }}
+      <span *ngIf="t.badge" class="tab-badge">{{ t.badge }}</span>
+    </button>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="tab-content" [@tabContent]="activeTab" *ngIf="activeTab === 'overview'">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">All Batteries</span>
+        <div class="table-filters">
+          <input type="text" placeholder="Search vehicle..." class="search-input" />
+          <select class="filter-select">
+            <option>All Status</option>
+            <option>Healthy</option>
+            <option>Needs Attention</option>
+            <option>Critical</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Vehicle ID</th>
+              <th>Vehicle</th>
+              <th>SoC</th>
+              <th>Health</th>
+              <th>Temperature</th>
+              <th>Voltage</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let b of batteries" class="table-row">
+              <td><span class="vehicle-id">{{ b.id }}</span></td>
+              <td>{{ b.vehicle }}</td>
+              <td>
+                <div class="soc-cell">
+                  <div class="mini-bar-wrap">
+                    <div class="mini-bar" [style.width]="b.soc + '%'" [style.background]="socColor(b.soc)"></div>
+                  </div>
+                  <span [style.color]="socColor(b.soc)">{{ b.soc }}%</span>
+                </div>
+              </td>
+              <td>
+                <span class="health-badge" [style.background]="healthColor(b.health) + '22'" [style.color]="healthColor(b.health)">
+                  {{ b.health }}
+                </span>
+              </td>
+              <td>
+                <span [style.color]="tempColor(b.temp)">{{ b.temp }}°C</span>
+              </td>
+              <td>{{ b.voltage }}V</td>
+              <td>
+                <span class="status-pill" [style.background]="b.statusColor + '22'" [style.color]="b.statusColor">
+                  {{ b.status }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" [@tabContent]="activeTab" *ngIf="activeTab === 'health'">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Battery Health Details</span></div>
+      <div class="health-grid">
+        <div *ngFor="let b of batteries" class="health-card">
+          <div class="hc-header">
+            <span class="vehicle-id">{{ b.id }}</span>
+            <span class="health-badge" [style.background]="healthColor(b.health) + '22'" [style.color]="healthColor(b.health)">{{ b.health }}</span>
+          </div>
+          <p class="hc-vehicle">{{ b.vehicle }}</p>
+          <div class="hc-gauge">
+            <svg viewBox="0 0 100 60" width="100" height="60">
+              <path d="M10 50 A40 40 0 0 1 90 50" fill="none" stroke="var(--surface2)" stroke-width="8" stroke-linecap="round"/>
+              <path d="M10 50 A40 40 0 0 1 90 50" fill="none" [attr.stroke]="socColor(b.soc)" stroke-width="8" stroke-linecap="round"
+                [attr.stroke-dasharray]="(b.soc / 100) * 125.6 + ' 125.6'" />
+              <text x="50" y="52" text-anchor="middle" fill="var(--text)" font-size="14" font-weight="700">{{ b.soc }}%</text>
+            </svg>
+          </div>
+          <div class="hc-stats">
+            <div class="hc-stat"><span>Temp</span><strong [style.color]="tempColor(b.temp)">{{ b.temp }}°C</strong></div>
+            <div class="hc-stat"><span>Voltage</span><strong>{{ b.voltage }}V</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" [@tabContent]="activeTab" *ngIf="activeTab === 'soc'">
+    <div class="card">
+      <div class="card-header"><span class="card-title">State of Charge</span></div>
+      <div class="soc-list">
+        <div *ngFor="let b of batteries" class="soc-row">
+          <span class="vehicle-id">{{ b.id }}</span>
+          <span class="soc-vehicle">{{ b.vehicle }}</span>
+          <div class="soc-bar-wrap">
+            <div class="soc-bar" [style.width]="b.soc + '%'" [style.background]="socColor(b.soc)"></div>
+          </div>
+          <span class="soc-val" [style.color]="socColor(b.soc)">{{ b.soc }}%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" [@tabContent]="activeTab" *ngIf="activeTab === 'temperature'">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Temperature Monitor</span></div>
+      <div class="temp-grid">
+        <div *ngFor="let b of batteries" class="temp-card">
+          <div class="temp-circle" [style.border-color]="tempColor(b.temp)">
+            <span class="temp-val" [style.color]="tempColor(b.temp)">{{ b.temp }}°C</span>
+          </div>
+          <span class="vehicle-id">{{ b.id }}</span>
+          <span class="temp-vehicle">{{ b.vehicle }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" [@tabContent]="activeTab" *ngIf="activeTab === 'alerts'">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Active Alerts</span></div>
+      <div class="alerts-list">
+        <div *ngFor="let a of alerts" class="alert-row" [class.critical]="a.severity==='critical'" [class.warning]="a.severity==='warning'">
+          <div class="alert-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div class="alert-body">
+            <span class="alert-vehicle">{{ a.id }}</span>
+            <span class="alert-msg">{{ a.msg }}</span>
+          </div>
+          <span class="alert-time">{{ a.time }}</span>
+          <button class="btn-secondary sm">Resolve</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

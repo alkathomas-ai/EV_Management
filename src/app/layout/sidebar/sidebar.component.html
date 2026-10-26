@@ -1,0 +1,38 @@
+<nav class="sidebar">
+  <div class="brand">
+    <div class="brand-logo">
+      <span>EV</span>
+    </div>
+    <div class="brand-text">
+      <strong>EV Operations</strong>
+      <small>One Platform. Complete Visibility.</small>
+    </div>
+  </div>
+
+  <a routerLink="/home" routerLinkActive="active" class="nav-item home-item">
+    <span class="nav-icon" [innerHTML]="icon('home')"></span>
+    <span>Home</span>
+  </a>
+
+  <div class="nav-section">
+    <span class="section-label">Modules</span>
+    <a *ngFor="let m of modules" [routerLink]="m.route" routerLinkActive="active" class="nav-item">
+      <span class="nav-icon" [innerHTML]="icon(m.icon)"></span>
+      <span>{{ m.label }}</span>
+    </a>
+  </div>
+
+  <div class="nav-section">
+    <span class="section-label">System</span>
+    <a *ngFor="let s of system" [routerLink]="s.route" routerLinkActive="active" class="nav-item">
+      <span class="nav-icon" [innerHTML]="icon(s.icon)"></span>
+      <span>{{ s.label }}</span>
+    </a>
+  </div>
+
+  <div class="sidebar-footer">
+    <span class="status-dot"></span>
+    <span class="status-text">Platform Online</span>
+    <span class="version">v1.2.0</span>
+  </div>
+</nav>
