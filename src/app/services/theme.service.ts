@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
-  isDark = signal(true);
+  isDark = signal(false);
 
   toggle() {
     this.isDark.update(v => !v);
@@ -10,6 +10,6 @@ export class ThemeService {
   }
 
   init() {
-    document.documentElement.setAttribute('data-theme', 'dark');
+    document.documentElement.setAttribute('data-theme', 'light');
   }
 }

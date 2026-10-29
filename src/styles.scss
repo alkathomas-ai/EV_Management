@@ -24,7 +24,7 @@
   --border:       rgba(255,255,255,0.06);
   --border-hover: rgba(255,255,255,0.12);
   --text:         #eef0f6;
-  --text-2:       #c8cdd e;
+  --text-2:       #c8cdde;
   --text-muted:   #6b7394;
   --text-faint:   #3d4460;
 
@@ -34,7 +34,7 @@
   --primary-glow: rgba(34,211,238,0.16);
   --primary-bg:   rgba(34,211,238,0.08);
 
-  --emerald:      #10b981;
+  --emerald:      rgb(34 197 151);
   --emerald-bg:   rgba(16,185,129,0.10);
   --amber:        #f59e0b;
   --amber-bg:     rgba(245,158,11,0.10);
@@ -47,7 +47,7 @@
   --sky:          #38bdf8;
 
   /* legacy aliases */
-  --green:  #10b981;
+  --green:  rgb(34 197 151);
   --orange: #f59e0b;
   --red:    #f43f5e;
   --purple: #8b5cf6;
@@ -64,26 +64,26 @@
 
 /* ── Light theme — Intelligent Cloud Engine style ── */
 [data-theme="light"] {
-  --bg:           #f4f6f8;
-  --bg2:          #edf0f4;
+  --bg:           #f3f6f8;
+  --bg2:          #edf2f5;
   --surface:      #ffffff;
   --surface2:     #f4f6f8;
   --surface3:     #e8ecf1;
-  --border:       rgba(0,0,0,0.08);
+  --border:       #e0e8ee;
   --border-hover: rgba(0,0,0,0.15);
-  --text:         #1a1d23;
-  --text-2:       #374151;
-  --text-muted:   #6b7280;
-  --text-faint:   #9ca3af;
+  --text:         #17232c;
+  --text-2:       #374b5a;
+  --text-muted:   #64798a;
+  --text-faint:   #8a9aa7;
 
   /* Sky-blue primary matching the ICE sidebar active state */
-  --primary:      #0ea5e9;
+  --primary:      #10a8e8;
   --primary-light:#38bdf8;
   --primary-dark: #0284c7;
   --primary-glow: rgba(14,165,233,0.16);
   --primary-bg:   rgba(14,165,233,0.08);
 
-  --emerald:      #10b981;
+  --emerald:      rgb(34 197 151);
   --emerald-bg:   rgba(16,185,129,0.08);
   --amber:        #f59e0b;
   --amber-bg:     rgba(245,158,11,0.08);
@@ -95,7 +95,7 @@
   --cyan-bg:      rgba(14,165,233,0.08);
   --sky:          #0284c7;
 
-  --green:  #10b981;
+  --green:  rgb(34 197 151);
   --orange: #f59e0b;
   --red:    #ef4444;
   --purple: #8b5cf6;
@@ -119,6 +119,7 @@ html, body {
   color: var(--text);
   font-size: 14px;
   line-height: 1.6;
+  min-width: 320px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

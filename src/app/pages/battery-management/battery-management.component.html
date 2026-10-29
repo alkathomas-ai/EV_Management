@@ -1,193 +1,78 @@
-<div class="bm-page">
-  <!-- Page Header -->
-  <div class="page-header">
+<main class="bms-page">
+  <header class="page-header">
     <div>
-      <h1>Battery Management</h1>
-      <p class="sub">Monitor battery health, SoC, temperature and usage across all vehicles.</p>
+      <p class="eyebrow">BATTERY MANAGEMENT SYSTEM</p>
+      <h1>{{ selectedBattery() ? selectedBattery()!.id : 'Battery health & readiness' }}</h1>
+      <p class="subtitle">{{ selectedBattery() ? 'Pack telemetry, operating history and safety evidence.' : 'A live view of battery health, readiness and safety across your fleet.' }}</p>
     </div>
     <div class="header-actions">
-      <button class="btn-secondary">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Export
-      </button>
-      <button class="btn-primary">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-        Refresh
-      </button>
+      <button class="outline-btn" *ngIf="selectedBattery()" (click)="selectedId.set(null)">← All batteries</button>
+      <button class="outline-btn" (click)="downloadReport()">Export report</button>
+      <span class="updated"><i></i> Demo telemetry · 2 min ago</span>
     </div>
-  </div>
+  </header>
 
-  <!-- Summary KPIs -->
-  <div class="kpi-row">
-    <div class="kpi-card card" *ngFor="let h of healthStats">
-      <div class="kpi-dot" [style.background]="h.color"></div>
-      <div class="kpi-body">
-        <span class="kpi-label">{{ h.label }}</span>
-        <span class="kpi-value" [style.color]="h.color">{{ h.count }}</span>
-        <div class="kpi-bar-wrap">
-          <div class="kpi-bar" [style.width]="h.pct + '%'" [style.background]="h.color"></div>
-        </div>
-        <span class="kpi-pct">{{ h.pct }}%</span>
-      </div>
-    </div>
-    <div class="kpi-card card alert-kpi">
-      <div class="kpi-dot" style="background:#ef4444"></div>
-      <div class="kpi-body">
-        <span class="kpi-label">Active Alerts</span>
-        <span class="kpi-value" style="color:#ef4444">{{ alerts.length }}</span>
-        <span class="kpi-sub">Require attention</span>
-      </div>
-    </div>
-  </div>
+  <ng-container *ngIf="!selectedBattery(); else detailView">
+    <section class="summary-grid" aria-label="Battery fleet summary">
+      <article class="summary-card card" *ngFor="let item of summary">
+        <div class="summary-heading"><span>{{ item.label }}</span><span class="summary-icon" [class]="'summary-icon '+item.tone">{{ item.icon }}</span></div>
+        <strong>{{ item.value }}</strong>
+        <small>{{ item.note }}</small>
+      </article>
+    </section>
 
-  <!-- Tabs -->
-  <div class="tabs-bar">
-    <button
-      *ngFor="let t of tabs"
-      class="tab-btn"
-      [class.active]="activeTab === t.id"
-      (click)="setTab(t.id)"
-    >
-      {{ t.label }}
-      <span *ngIf="t.badge" class="tab-badge">{{ t.badge }}</span>
-    </button>
-  </div>
-
-  <!-- Tab Content -->
-  <div class="tab-content" [@tabContent]="activeTab" *ngIf="activeTab === 'overview'">
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">All Batteries</span>
-        <div class="table-filters">
-          <input type="text" placeholder="Search vehicle..." class="search-input" />
-          <select class="filter-select">
-            <option>All Status</option>
-            <option>Healthy</option>
-            <option>Needs Attention</option>
-            <option>Critical</option>
+    <section class="card inventory-card">
+      <div class="section-heading">
+        <div><h2>Battery inventory</h2><p>Pack health and latest reported readings</p></div>
+        <div class="table-tools">
+          <label class="search"><span>⌕</span><input aria-label="Search batteries" placeholder="Search pack or vehicle" [value]="query()" (input)="query.set($any($event.target).value)" /></label>
+          <select aria-label="Filter readiness" [value]="statusFilter()" (change)="statusFilter.set($any($event.target).value)">
+            <option value="all">All readiness</option><option value="READY">Ready</option><option value="CHARGE REQUIRED">Charge required</option><option value="INSPECT">Inspect</option><option value="ISOLATE">Isolate</option><option value="MONITOR">Monitor</option>
           </select>
+          <details class="columns-menu"><summary>Columns</summary><div class="columns-options"><label *ngFor="let column of columns"><input type="checkbox" [checked]="visibleColumns().includes(column.key)" (change)="toggleColumn(column.key)" />{{ column.label }}</label></div></details>
         </div>
       </div>
       <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Vehicle ID</th>
-              <th>Vehicle</th>
-              <th>SoC</th>
-              <th>Health</th>
-              <th>Temperature</th>
-              <th>Voltage</th>
-              <th>Status</th>
-            </tr>
-          </thead>
+        <table>
+          <thead><tr>
+            <th *ngFor="let column of displayedColumns()" [class.sortable]="column.key !== 'readiness'" (click)="sortBy(column.key)">{{ column.label }} <span *ngIf="sortKey()===column.key">{{ sortDirection()==='asc'?'↑':'↓' }}</span></th>
+          </tr></thead>
           <tbody>
-            <tr *ngFor="let b of batteries" class="table-row">
-              <td><span class="vehicle-id">{{ b.id }}</span></td>
-              <td>{{ b.vehicle }}</td>
-              <td>
-                <div class="soc-cell">
-                  <div class="mini-bar-wrap">
-                    <div class="mini-bar" [style.width]="b.soc + '%'" [style.background]="socColor(b.soc)"></div>
-                  </div>
-                  <span [style.color]="socColor(b.soc)">{{ b.soc }}%</span>
-                </div>
-              </td>
-              <td>
-                <span class="health-badge" [style.background]="healthColor(b.health) + '22'" [style.color]="healthColor(b.health)">
-                  {{ b.health }}
-                </span>
-              </td>
-              <td>
-                <span [style.color]="tempColor(b.temp)">{{ b.temp }}°C</span>
-              </td>
-              <td>{{ b.voltage }}V</td>
-              <td>
-                <span class="status-pill" [style.background]="b.statusColor + '22'" [style.color]="b.statusColor">
-                  {{ b.status }}
-                </span>
+            <tr *ngFor="let b of pagedBatteries()" (click)="selectedId.set(b.id)" tabindex="0" (keydown.enter)="selectedId.set(b.id)">
+              <td *ngFor="let column of displayedColumns()">
+                <ng-container [ngSwitch]="column.key">
+                  <span *ngSwitchCase="'id'" class="pack-id">{{ b.id }}<small>{{ b.type }}</small></span>
+                  <span *ngSwitchCase="'vehicle'">{{ b.vehicle }}<small>{{ b.location }}</small></span>
+                  <span *ngSwitchCase="'soc'"><b>{{ b.soc }}%</b><span class="mini-track"><i [style.width.%]="b.soc"></i></span></span>
+                  <span *ngSwitchCase="'soh'" [class.warn-text]="b.soh<85">{{ b.soh }}%</span>
+                  <span *ngSwitchCase="'voltage'">{{ b.voltage }} <small>V</small></span>
+                  <span *ngSwitchCase="'current'">{{ b.current }} <small>A</small></span>
+                  <span *ngSwitchCase="'temperature'" [class.danger-text]="b.temperature>=45">{{ b.temperature }} °C</span>
+                  <span *ngSwitchCase="'capacity'">{{ b.capacity }} <small>kWh</small></span>
+                  <span *ngSwitchCase="'faults'" [class.danger-text]="b.critical">{{ b.faults }} <small>{{ b.critical ? 'critical' : 'active' }}</small></span>
+                  <span *ngSwitchCase="'updated'">{{ b.updated }}<small [class.danger-text]="b.stale">{{ b.stale ? 'Stale telemetry' : 'Fresh' }}</small></span>
+                  <span *ngSwitchCase="'readiness'" class="status" [ngClass]="statusClass(recommendation(b))">{{ recommendation(b) }}</span>
+                </ng-container>
               </td>
             </tr>
+            <tr *ngIf="!filteredBatteries().length"><td class="empty" [attr.colspan]="displayedColumns().length">No batteries match your search.</td></tr>
           </tbody>
         </table>
       </div>
-    </div>
-  </div>
+      <footer class="table-footer"><span>Showing {{ pageStart() }}–{{ pageEnd() }} of {{ filteredBatteries().length }} packs</span><div class="pagination"><button (click)="previousPage()" [disabled]="page()===0">‹</button><span>{{ page()+1 }} / {{ pageCount() }}</span><button (click)="nextPage()" [disabled]="page()+1>=pageCount()">›</button></div></footer>
+    </section>
+  </ng-container>
 
-  <div class="tab-content" [@tabContent]="activeTab" *ngIf="activeTab === 'health'">
-    <div class="card">
-      <div class="card-header"><span class="card-title">Battery Health Details</span></div>
-      <div class="health-grid">
-        <div *ngFor="let b of batteries" class="health-card">
-          <div class="hc-header">
-            <span class="vehicle-id">{{ b.id }}</span>
-            <span class="health-badge" [style.background]="healthColor(b.health) + '22'" [style.color]="healthColor(b.health)">{{ b.health }}</span>
-          </div>
-          <p class="hc-vehicle">{{ b.vehicle }}</p>
-          <div class="hc-gauge">
-            <svg viewBox="0 0 100 60" width="100" height="60">
-              <path d="M10 50 A40 40 0 0 1 90 50" fill="none" stroke="var(--surface2)" stroke-width="8" stroke-linecap="round"/>
-              <path d="M10 50 A40 40 0 0 1 90 50" fill="none" [attr.stroke]="socColor(b.soc)" stroke-width="8" stroke-linecap="round"
-                [attr.stroke-dasharray]="(b.soc / 100) * 125.6 + ' 125.6'" />
-              <text x="50" y="52" text-anchor="middle" fill="var(--text)" font-size="14" font-weight="700">{{ b.soc }}%</text>
-            </svg>
-          </div>
-          <div class="hc-stats">
-            <div class="hc-stat"><span>Temp</span><strong [style.color]="tempColor(b.temp)">{{ b.temp }}°C</strong></div>
-            <div class="hc-stat"><span>Voltage</span><strong>{{ b.voltage }}V</strong></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="tab-content" [@tabContent]="activeTab" *ngIf="activeTab === 'soc'">
-    <div class="card">
-      <div class="card-header"><span class="card-title">State of Charge</span></div>
-      <div class="soc-list">
-        <div *ngFor="let b of batteries" class="soc-row">
-          <span class="vehicle-id">{{ b.id }}</span>
-          <span class="soc-vehicle">{{ b.vehicle }}</span>
-          <div class="soc-bar-wrap">
-            <div class="soc-bar" [style.width]="b.soc + '%'" [style.background]="socColor(b.soc)"></div>
-          </div>
-          <span class="soc-val" [style.color]="socColor(b.soc)">{{ b.soc }}%</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="tab-content" [@tabContent]="activeTab" *ngIf="activeTab === 'temperature'">
-    <div class="card">
-      <div class="card-header"><span class="card-title">Temperature Monitor</span></div>
-      <div class="temp-grid">
-        <div *ngFor="let b of batteries" class="temp-card">
-          <div class="temp-circle" [style.border-color]="tempColor(b.temp)">
-            <span class="temp-val" [style.color]="tempColor(b.temp)">{{ b.temp }}°C</span>
-          </div>
-          <span class="vehicle-id">{{ b.id }}</span>
-          <span class="temp-vehicle">{{ b.vehicle }}</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="tab-content" [@tabContent]="activeTab" *ngIf="activeTab === 'alerts'">
-    <div class="card">
-      <div class="card-header"><span class="card-title">Active Alerts</span></div>
-      <div class="alerts-list">
-        <div *ngFor="let a of alerts" class="alert-row" [class.critical]="a.severity==='critical'" [class.warning]="a.severity==='warning'">
-          <div class="alert-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          </div>
-          <div class="alert-body">
-            <span class="alert-vehicle">{{ a.id }}</span>
-            <span class="alert-msg">{{ a.msg }}</span>
-          </div>
-          <span class="alert-time">{{ a.time }}</span>
-          <button class="btn-secondary sm">Resolve</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+  <ng-template #detailView><ng-container *ngIf="selectedBattery() as b">
+    <section class="detail-top">
+      <article class="card soc-card"><div class="soc-ring" [style.--soc]="b.soc+'%'" [class.soc-low]="b.soc<25"><div><strong>{{ b.soc }}%</strong><small>STATE OF CHARGE</small></div></div><div class="soc-copy"><span class="status" [ngClass]="statusClass(recommendation(b))">{{ recommendation(b) }}</span><h2>{{ b.vehicle }} <small>· {{ b.location }}</small></h2><p>{{ b.id }} · {{ b.type }} · {{ b.chemistry }}</p><div class="freshness" [class.danger-text]="b.stale"><i></i>{{ b.stale ? 'Telemetry stale' : 'Telemetry fresh' }} · Updated {{ b.updated }}</div></div></article>
+      <article class="card decision-card" [class.critical-card]="b.critical"><div class="decision-title"><span class="decision-icon">{{ b.critical ? '!' : '✓' }}</span><div><small>SAFETY RECOMMENDATION</small><h2>{{ recommendation(b) }}</h2></div></div><p>{{ recommendationReason(b) }}</p><div class="evidence"><span>Evidence</span><b>{{ b.critical ? b.faultText : b.stale ? 'Telemetry age exceeds 15-minute freshness window' : b.soc<25 ? 'State of charge below 25% reserve' : 'No active critical faults · telemetry within range' }}</b><small>Data timestamp: {{ b.updated }} · {{ b.stale ? 'Stale' : 'Fresh' }} · {{ b.stale || !b.critical ? 'Medium' : 'High' }} evidence</small></div><button class="action-btn" (click)="acknowledge(b)" [disabled]="!b.critical">{{ b.acknowledged ? 'Fault acknowledged' : 'Acknowledge fault' }}</button></article>
+    </section>
+    <section class="metric-grid"><article class="card metric-card"><small>STATE OF HEALTH</small><strong [class.warn-text]="b.soh<85">{{ b.soh }}<em>%</em></strong><span>Estimated usable capacity <b>{{ b.capacity }} kWh</b></span></article><article class="card metric-card"><small>PACK VOLTAGE</small><strong>{{ b.voltage }}<em>V</em></strong><span>Current <b>{{ b.current }} A</b></span></article><article class="card metric-card"><small>TEMPERATURE</small><strong [class.danger-text]="b.temperature>=45">{{ b.temperature }}<em>°C</em></strong><span>{{ b.temperature>=45?'Above operating range':'Within operating range' }}</span></article><article class="card metric-card"><small>CHARGE CYCLES</small><strong>{{ b.cycles }}<em></em></strong><span>Nominal capacity <b>{{ b.nominal }} kWh</b></span></article></section>
+    <section class="detail-grid">
+      <article class="card chart-card"><div class="section-heading"><div><h2>Capacity degradation</h2><p>State of health over the last 12 months</p></div><span class="chart-legend"><i></i>SOH</span></div><div class="chart-wrap"><div class="y-labels"><span>100%</span><span>95%</span><span>90%</span><span>85%</span><span>80%</span></div><svg viewBox="0 0 700 180" preserveAspectRatio="none" aria-label="SOH degradation trend"><defs><linearGradient id="healthFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#22c597" stop-opacity=".22"/><stop offset="1" stop-color="#22c597" stop-opacity="0"/></linearGradient></defs><path d="M0 18 L64 26 L128 34 L192 42 L256 48 L320 62 L384 69 L448 83 L512 91 L576 108 L640 117 L700 130 L700 180 L0 180Z" fill="url(#healthFill)"/><path d="M0 18 L64 26 L128 34 L192 42 L256 48 L320 62 L384 69 L448 83 L512 91 L576 108 L640 117 L700 130" fill="none" stroke="#22c597" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="700" cy="130" r="5" fill="#22c597" stroke="white" stroke-width="3"/></svg><div class="x-labels"><span>Nov ’25</span><span>Feb ’26</span><span>May ’26</span><span>Aug ’26</span><span>Oct ’26</span></div></div></article>
+      <article class="card chart-card temperature-card"><div class="section-heading"><div><h2>Temperature exposure</h2><p>Last 24 hours · pack average</p></div><span class="chart-legend orange"><i></i>°C</span></div><div class="temp-chart"><div class="temp-bars"><i style="height:42%"></i><i style="height:38%"></i><i style="height:51%"></i><i style="height:46%"></i><i style="height:55%"></i><i style="height:61%"></i><i style="height:48%"></i><i style="height:72%"></i><i style="height:65%"></i><i style="height:57%"></i><i style="height:49%"></i><i style="height:44%"></i></div><div class="x-labels"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>Now</span></div></div></article>
+    </section>
+    <section class="detail-grid lower-grid"><article class="card history-card"><div class="section-heading"><div><h2>Operating history</h2><p>Recent pack events and custody</p></div></div><div class="timeline"><div><i class="green-dot"></i><span><b>Telemetry received</b><small>{{ b.updated }} · BMS gateway · {{ b.location }}</small></span></div><div><i class="blue-dot"></i><span><b>{{ b.swappable ? 'Battery swapped into '+b.vehicle : 'Charge cycle completed' }}</b><small>Today, 08:42 · Depot A</small></span></div><div><i class="blue-dot"></i><span><b>Inspection recorded</b><small>Oct 12, 2026 · Technician: R. Singh · Passed</small></span></div></div><div class="identity"><h3>Pack identity & compatibility</h3><div><span>Serial number</span><b>{{ b.serial }}</b></div><div><span>Compatible platform</span><b>{{ b.platform }}</b></div><div><span>Custody</span><b>{{ b.custody }}</b></div><div><span>Cell imbalance</span><b [class.warn-text]="b.imbalance>30">{{ b.imbalance }} mV · {{ b.imbalance>30?'Inspect':'Normal' }}</b></div></div></article><article class="card faults-card"><div class="section-heading"><div><h2>Faults & inspections</h2><p>Active and recently resolved</p></div><span class="fault-count" [class.has-fault]="b.faults>0">{{ b.faults }} active</span></div><div class="fault-item" *ngIf="b.faults"><span class="fault-marker">!</span><div><b>{{ b.faultText }}</b><small>{{ b.critical?'Critical fault':'Warning' }} · {{ b.updated }} · {{ b.acknowledged?'Acknowledged':'Unacknowledged' }}</small></div></div><div class="fault-item resolved"><span class="fault-marker">✓</span><div><b>Cell voltage variance within threshold</b><small>Resolved · Oct 12, 2026 · Inspection completed</small></div></div><div class="swap-history" *ngIf="b.swappable"><h3>Swap history</h3><div><span>Oct 24, 2026</span><b>Installed in {{ b.vehicle }}</b><small>Depot A · Operator M. Das</small></div><div><span>Oct 19, 2026</span><b>Removed for scheduled charge</b><small>Depot A · Operator M. Das</small></div></div></article></section>
+  </ng-container></ng-template>
+</main>
